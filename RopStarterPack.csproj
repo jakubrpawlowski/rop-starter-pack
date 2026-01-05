@@ -10,10 +10,12 @@
     <LangVersion>14.0</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>CS1591</NoWarn>
 
     <!-- NuGet Package Metadata -->
     <PackageId>RopStarterPack</PackageId>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Authors>Jakub Pawlowski</Authors>
     <Description>Simple Railway Oriented Programming library for C#</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
