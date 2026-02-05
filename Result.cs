@@ -1,5 +1,6 @@
 namespace RopStarterPack;
 
+#if NET7_0_OR_GREATER
 /// <summary>
 /// Error types must implement this to support automatic exception capture in async chains.
 /// </summary>
@@ -7,6 +8,7 @@ public interface IFromException<E>
 {
     static abstract E FromException(Exception ex);
 }
+#endif
 
 /// <summary>
 /// Discriminated union: either Ok(value) or Err(error). Never both, never neither.
@@ -130,6 +132,7 @@ public static class Result
         value is not null ? new Result<T, E>.Ok(value) : new Result<T, E>.Err(errorIfNull);
 }
 
+#if NET7_0_OR_GREATER
 /// <summary>
 /// Async extensions for Result.
 /// </summary>
@@ -273,3 +276,4 @@ public static class ResultExtensions
         }
     }
 }
+#endif
