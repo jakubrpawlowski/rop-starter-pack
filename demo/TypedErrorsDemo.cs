@@ -140,7 +140,7 @@ public static class TypedErrorsDemo
 
         foreach (var scenario in scenarios)
         {
-            var result = await Result.From(() => ProcessOrder(scenario), AppError.FromException);
+            var result = await ProcessOrder(scenario);
             var output = result.Match(
                 ok: msg => $"SUCCESS: {msg}",
                 err: e =>
@@ -168,10 +168,7 @@ public static class TypedErrorsDemo
 
         foreach (var scenario in scenarios)
         {
-            var result = await Result.From(
-                () => ProcessOrderLinq(scenario),
-                AppError.FromException
-            );
+            var result = await ProcessOrderLinq(scenario);
             var output = result.Match(
                 ok: msg => $"SUCCESS: {msg}",
                 err: e =>

@@ -100,5 +100,30 @@ public static class SyncDemo
         Console.WriteLine(
             $"  FromNullable(null, ...): {result13.Match(ok: s => $"Got {s}", err: e => e)}"
         );
+
+        // LINQ syntax: from/select query syntax using SelectMany
+        Console.WriteLine("\nLINQ syntax demo:");
+
+        var result14 =
+            from a in ParseNumber("10")
+            from b in ParseNumber("5")
+            from c in Divide(a, b)
+            select $"{a} / {b} = {c}";
+
+        var result15 =
+            from a in ParseNumber("10")
+            from b in ParseNumber("abc")
+            from c in Divide(a, b)
+            select $"{a} / {b} = {c}";
+
+        var result16 =
+            from a in ParseNumber("10")
+            from b in ParseNumber("0")
+            from c in Divide(a, b)
+            select $"{a} / {b} = {c}";
+
+        Console.WriteLine($"  10 / 5: {result14.Match(ok: s => s, err: e => e)}");
+        Console.WriteLine($"  10 / abc: {result15.Match(ok: s => s, err: e => e)}");
+        Console.WriteLine($"  10 / 0: {result16.Match(ok: s => s, err: e => e)}");
     }
 }

@@ -1,15 +1,13 @@
-using RopStarterPack;
-
 namespace Demo;
 
 // Simple error for basic demos
-record DemoError(string Message) : IFromException<DemoError>
+record DemoError(string Message)
 {
     public static DemoError FromException(Exception ex) => new DemoError($"Caught: {ex.Message}");
 }
 
 // Sum type - all errors for the entire app in one place
-abstract record AppError : IFromException<AppError>
+abstract record AppError
 {
     // Typed errors (business logic)
     public record UserNotFound(string UserId) : AppError;

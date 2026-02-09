@@ -1,15 +1,5 @@
 namespace RopStarterPack;
 
-#if NET7_0_OR_GREATER
-/// <summary>
-/// Error types must implement this to support automatic exception capture in async chains.
-/// </summary>
-public interface IFromException<E>
-{
-    static abstract E FromException(Exception ex);
-}
-#endif
-
 /// <summary>
 /// Discriminated union: either Ok(value) or Err(error). Never both, never neither.
 /// </summary>
@@ -46,6 +36,15 @@ public abstract record Result<T, E>
         this switch
         {
             Ok(var value) => f(value),
+            Err(var error) => new Result<U, E>.Err(error),
+            _ => throw new InvalidOperationException("Unreachable"),
+        };
+
+    // Chain operations that can fail (async version)
+    public async Task<Result<U, E>> AndThen<U>(Func<T, Task<Result<U, E>>> f) =>
+        this switch
+        {
+            Ok(var value) => await f(value),
             Err(var error) => new Result<U, E>.Err(error),
             _ => throw new InvalidOperationException("Unreachable"),
         };
@@ -132,7 +131,6 @@ public static class Result
         value is not null ? new Result<T, E>.Ok(value) : new Result<T, E>.Err(errorIfNull);
 }
 
-#if NET7_0_OR_GREATER
 /// <summary>
 /// Async extensions for Result.
 /// </summary>
@@ -144,55 +142,16 @@ public static class ResultExtensions
         Func<T, TResult> ok,
         Func<E, TResult> err
     )
-        where E : IFromException<E>
     {
-        try
-        {
-            var result = await self;
-            return result.Match(ok, err);
-        }
-        catch (Exception ex)
-        {
-            return err(E.FromException(ex));
-        }
+        var result = await self;
+        return result.Match(ok, err);
     }
 
     // Async Map (sync f)
     public static async Task<Result<U, E>> Map<T, U, E>(this Task<Result<T, E>> self, Func<T, U> f)
-        where E : IFromException<E>
     {
-        try
-        {
-            var result = await self;
-            return result.Map(f);
-        }
-        catch (Exception ex)
-        {
-            return new Result<U, E>.Err(E.FromException(ex));
-        }
-    }
-
-    // Async Map (async f)
-    public static async Task<Result<U, E>> Map<T, U, E>(
-        this Task<Result<T, E>> self,
-        Func<T, Task<U>> f
-    )
-        where E : IFromException<E>
-    {
-        try
-        {
-            var result = await self;
-            return result switch
-            {
-                Result<T, E>.Ok(var v) => new Result<U, E>.Ok(await f(v)),
-                Result<T, E>.Err(var e) => new Result<U, E>.Err(e),
-                _ => throw new InvalidOperationException("Unreachable"),
-            };
-        }
-        catch (Exception ex)
-        {
-            return new Result<U, E>.Err(E.FromException(ex));
-        }
+        var result = await self;
+        return result.Map(f);
     }
 
     // Async AndThen (sync f)
@@ -200,22 +159,9 @@ public static class ResultExtensions
         this Task<Result<T, E>> self,
         Func<T, Result<U, E>> f
     )
-        where E : IFromException<E>
     {
-        try
-        {
-            var result = await self;
-            return result switch
-            {
-                Result<T, E>.Ok(var v) => f(v),
-                Result<T, E>.Err(var e) => new Result<U, E>.Err(e),
-                _ => throw new InvalidOperationException("Unreachable"),
-            };
-        }
-        catch (Exception ex)
-        {
-            return new Result<U, E>.Err(E.FromException(ex));
-        }
+        var result = await self;
+        return result.AndThen(f);
     }
 
     // Async AndThen (async f)
@@ -223,57 +169,34 @@ public static class ResultExtensions
         this Task<Result<T, E>> self,
         Func<T, Task<Result<U, E>>> f
     )
-        where E : IFromException<E>
     {
-        try
-        {
-            var result = await self;
-            return result switch
-            {
-                Result<T, E>.Ok(var v) => await f(v),
-                Result<T, E>.Err(var e) => new Result<U, E>.Err(e),
-                _ => throw new InvalidOperationException("Unreachable"),
-            };
-        }
-        catch (Exception ex)
-        {
-            return new Result<U, E>.Err(E.FromException(ex));
-        }
+        var result = await self;
+        return await result.AndThen(f);
     }
 
     // Async LINQ support
     public static Task<Result<U, E>> SelectMany<T, U, E>(
         this Task<Result<T, E>> self,
-        Func<T, Task<Result<U, E>>> bind
-    )
-        where E : IFromException<E> => self.AndThen(bind);
+        Func<T, Task<Result<U, E>>> f
+    ) => self.AndThen(f);
 
     public static async Task<Result<V, E>> SelectMany<T, U, V, E>(
         this Task<Result<T, E>> self,
-        Func<T, Task<Result<U, E>>> bind,
+        Func<T, Task<Result<U, E>>> f,
         Func<T, U, V> project
     )
-        where E : IFromException<E>
     {
-        try
+        var result = await self;
+        return result switch
         {
-            var result = await self;
-            return result switch
+            Result<T, E>.Ok(var t) => await f(t) switch
             {
-                Result<T, E>.Ok(var t) => await bind(t) switch
-                {
-                    Result<U, E>.Ok(var u) => new Result<V, E>.Ok(project(t, u)),
-                    Result<U, E>.Err(var e) => new Result<V, E>.Err(e),
-                    _ => throw new InvalidOperationException("Unreachable"),
-                },
-                Result<T, E>.Err(var e) => new Result<V, E>.Err(e),
+                Result<U, E>.Ok(var u) => new Result<V, E>.Ok(project(t, u)),
+                Result<U, E>.Err(var e) => new Result<V, E>.Err(e),
                 _ => throw new InvalidOperationException("Unreachable"),
-            };
-        }
-        catch (Exception ex)
-        {
-            return new Result<V, E>.Err(E.FromException(ex));
-        }
+            },
+            Result<T, E>.Err(var e) => new Result<V, E>.Err(e),
+            _ => throw new InvalidOperationException("Unreachable"),
+        };
     }
 }
-#endif
