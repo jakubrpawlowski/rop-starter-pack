@@ -22,7 +22,7 @@ Define your error type with factories:
 ```csharp
 using RopStarterPack;
 
-abstract record AppError : IFromException<AppError>
+abstract record AppError
 {
     public record UserNotFound(string UserId) : AppError;
     public record OrderNotFound(string OrderId) : AppError;
